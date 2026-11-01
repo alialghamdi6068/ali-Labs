@@ -55,7 +55,7 @@ function arrayStrings(v,maxItems,maxLen) {
   return Array.isArray(v) ? v.filter(function(x){return typeof x==='string';}).slice(0,maxItems).map(function(x){return text(x,maxLen);}) : [];
 }
 function emptyStore() {
-  return {schemaVersion:1,users:[],sessions:[],projects:[],versions:[],comments:[],reports:[],audit:[],analytics:[],rateLimits:[],uploads:[],media:[],teams:[]};
+  return {schemaVersion:1,users:[],sessions:[],projects:[],versions:[],comments:[],reviews:[],reports:[],notifications:[],audit:[],analytics:[],rateLimits:[],uploads:[],media:[],teams:[]};
 }
 let store=emptyStore();
 let writeQueue=Promise.resolve();
@@ -120,6 +120,11 @@ function saveAudit(actor,action,type,target,details) {
   store.audit.unshift({id:id(),actor_id:actor||null,action:action,target_type:type,target_id:target||null,details:details||{},created_at:new Date().toISOString()});
   if(store.audit.length>10000) store.audit.length=10000;
 }
+function notify(userId,type,projectId,actorId,message) {
+  if(!userId||userId===actorId)return;
+  store.notifications.unshift({id:id(),user_id:userId,type,project_id:projectId||null,actor_id:actorId||null,message:text(message,240),read:false,created_at:new Date().toISOString()});
+  if(store.notifications.length>20000)store.notifications.length=20000;
+}
 function userPublic(u) {
   if(!u)return null;
   return {id:u.id,github_id:u.github_id,username:u.username,display_name:u.display_name,avatar_url:u.avatar_url,bio:u.bio||'',role:u.role,created_at:u.created_at};
@@ -178,7 +183,9 @@ function publicProject(p) {
   const latest=releases.slice().sort(function(a,b){return (Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0);})[0];
   const supportedVersions=[...new Set(releases.flatMap(function(v){return Array.isArray(v.game_versions)?v.game_versions:[];}))].slice(0,30);
   const loaders=[...new Set(releases.flatMap(function(v){return Array.isArray(v.loaders)?v.loaders:[];}))].slice(0,20);
-  return {id:p.id,name:p.name,slug:p.slug,summary:p.summary||'',description:p.description||'',category:p.category||'Other',requirements:p.requirements||'',source_url:p.source_url||'',icon_url:p.icon_url||'',status:p.status,downloads:Number(p.downloads)||0,created_at:p.created_at,updated_at:p.updated_at,author:owner?owner.username:'unknown',favorites_count:Array.isArray(p.favorites)?p.favorites.length:0,followers_count:Array.isArray(p.followers)?p.followers.length:0,supported_versions:supportedVersions,loaders,version:latest?latest.version_number:null,release_url:latest?latest.release_url:null};
+  const reviews=store.reviews.filter(function(review){return review.project_id===p.id;});
+  const rating=reviews.length?reviews.reduce(function(sum,review){return sum+Number(review.rating||0);},0)/reviews.length:0;
+  return {id:p.id,name:p.name,slug:p.slug,summary:p.summary||'',description:p.description||'',category:p.category||'Other',requirements:p.requirements||'',source_url:p.source_url||'',icon_url:p.icon_url||'',status:p.status,downloads:Number(p.downloads)||0,created_at:p.created_at,updated_at:p.updated_at,author:owner?owner.username:'unknown',favorites_count:Array.isArray(p.favorites)?p.favorites.length:0,followers_count:Array.isArray(p.followers)?p.followers.length:0,supported_versions:supportedVersions,loaders,version:latest?latest.version_number:null,release_url:latest?latest.release_url:null,rating:Number(rating.toFixed(2)),reviews_count:reviews.length};
 }
 function publicVersion(v) {
   return {id:v.id,version_number:v.version_number,changelog:v.changelog||'',game_versions:Array.isArray(v.game_versions)?v.game_versions:[],loaders:Array.isArray(v.loaders)?v.loaders:[],dependencies:Array.isArray(v.dependencies)?v.dependencies:[],channel:v.channel||'release',file_name:v.file_name||null,file_size:Number(v.file_size)||0,release_url:v.release_url||null,downloads:Number(v.downloads)||0,created_at:v.created_at};
@@ -327,19 +334,24 @@ async function handle(req,res) {
     return json(res,200,{projects,pagination:{page,limit,total,pages:Math.ceil(total/limit),has_more:page*limit<total},sort});
   }
   let m=pathname.match(/^\/api\/projects\/([a-zA-Z0-9_-]+)$/);
-  if(m&&req.method==='GET'){const p=store.projects.find(function(x){return x.slug===m[1]||x.id===m[1];});if(!approvedProject(p))return fail(res,404,'Project not found');return json(res,200,{project:publicProject(p),versions:store.versions.filter(function(v){return v.project_id===p.id&&v.status==='approved';}).map(publicVersion)});}
-  m=pathname.match(/^\/api\/projects\/([a-zA-Z0-9_-]+)\/(favorite|follow|comments|report|versions)$/);
+  if(m&&req.method==='GET'){const p=store.projects.find(function(x){return x.slug===m[1]||x.id===m[1];});if(!approvedProject(p))return fail(res,404,'Project not found');return json(res,200,{project:publicProject(p),versions:store.versions.filter(function(v){return v.project_id===p.id&&v.status==='approved';}).map(publicVersion),comments:store.comments.filter(function(c){return c.project_id===p.id&&c.status==='visible';}).map(function(c){const owner=store.users.find(function(x){return x.id===c.user_id;});return {id:c.id,body:c.body,created_at:c.created_at,username:owner&&owner.username||'unknown'};}),reviews:store.reviews.filter(function(review){return review.project_id===p.id;}).map(function(review){const owner=store.users.find(function(x){return x.id===review.user_id;});return {id:review.id,rating:review.rating,body:review.body,created_at:review.created_at,username:owner&&owner.username||'unknown'};})});}
+  m=pathname.match(/^\/api\/projects\/([a-zA-Z0-9_-]+)\/(favorite|follow|comments|report|versions|reviews)$/);
   if(m){
     const p=store.projects.find(function(x){return x.slug===m[1]||x.id===m[1];});if(!approvedProject(p))return fail(res,404,'Project not found');
     const user=currentUser(req);const action=m[2];
     if(action==='versions'&&req.method==='GET')return json(res,200,{versions:store.versions.filter(function(v){return v.project_id===p.id&&v.status==='approved';}).map(publicVersion)});
+    if(action==='reviews'&&req.method==='GET')return json(res,200,{reviews:store.reviews.filter(function(review){return review.project_id===p.id;}).map(function(review){const owner=store.users.find(function(x){return x.id===review.user_id;});return {id:review.id,rating:review.rating,body:review.body,created_at:review.created_at,username:owner&&owner.username||'unknown'};})});
     if(action==='comments'&&req.method==='GET')return json(res,200,{comments:store.comments.filter(function(c){return c.project_id===p.id&&c.status==='visible';}).map(function(c){const owner=store.users.find(function(x){return x.id===c.user_id;});return {id:c.id,body:c.body,created_at:c.created_at,username:owner&&owner.username||'unknown'};})});
     if(!user)return fail(res,401,'Sign in required');
-    if(action==='favorite'&&req.method==='POST'){p.favorites=p.favorites||[];const i=p.favorites.indexOf(user.id);if(i<0)p.favorites.push(user.id);else p.favorites.splice(i,1);await persist();return json(res,200,{favorited:p.favorites.includes(user.id)});}
-    if(action==='follow'&&req.method==='POST'){p.followers=p.followers||[];const i=p.followers.indexOf(user.id);if(i<0)p.followers.push(user.id);else p.followers.splice(i,1);await persist();return json(res,200,{following:p.followers.includes(user.id)});}
-    if(action==='comments'&&req.method==='POST'){const b=await body(req);const c={id:id(),project_id:p.id,user_id:user.id,body:text(b.body,3000),status:'visible',created_at:new Date().toISOString()};if(!c.body)return fail(res,400,'Comment cannot be empty');store.comments.push(c);await persist();return json(res,201,{comment:c});}
+    if(action==='favorite'&&req.method==='POST'){p.favorites=p.favorites||[];const i=p.favorites.indexOf(user.id);if(i<0){p.favorites.push(user.id);notify(p.owner_id,'favorite',p.id,user.id,'Your project received a new favorite.');}else p.favorites.splice(i,1);await persist();return json(res,200,{favorited:p.favorites.includes(user.id)});}
+    if(action==='follow'&&req.method==='POST'){p.followers=p.followers||[];const i=p.followers.indexOf(user.id);if(i<0){p.followers.push(user.id);notify(p.owner_id,'follow',p.id,user.id,'Someone started following your project.');}else p.followers.splice(i,1);await persist();return json(res,200,{following:p.followers.includes(user.id)});}
+    if(action==='comments'&&req.method==='POST'){const b=await body(req);const c={id:id(),project_id:p.id,user_id:user.id,body:text(b.body,3000),status:'visible',created_at:new Date().toISOString()};if(!c.body)return fail(res,400,'Comment cannot be empty');store.comments.push(c);notify(p.owner_id,'comment',p.id,user.id,'Your project received a new comment.');await persist();return json(res,201,{comment:c});}
+    if(action==='reviews'&&req.method==='POST'){const b=await body(req);const rating=Number(b.rating);if(!Number.isInteger(rating)||rating<1||rating>5)return fail(res,400,'Rating must be an integer from 1 to 5');const review={id:id(),project_id:p.id,user_id:user.id,rating,body:text(b.body,2000),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};const existing=store.reviews.find(function(item){return item.project_id===p.id&&item.user_id===user.id;});if(existing){existing.rating=rating;existing.body=review.body;existing.updated_at=review.updated_at;notify(p.owner_id,'review',p.id,user.id,'A user updated their project review.');await persist();return json(res,200,{review:existing,updated:true});}store.reviews.push(review);notify(p.owner_id,'review',p.id,user.id,'Your project received a new review.');await persist();return json(res,201,{review});}
     if(action==='report'&&req.method==='POST'){const b=await body(req);const reason=text(b.reason,100);if(reason.length<3)return fail(res,400,'Report reason must contain at least 3 characters');const r={id:id(),project_id:p.id,reporter_id:user.id,reason,details:text(b.details,2000),status:'pending',created_at:new Date().toISOString()};store.reports.push(r);await persist();return json(res,201,{ok:true});}
   }
+  if(pathname==='/api/me/notifications'&&req.method==='GET'){const user=requireUser(req,res);if(!user)return;return json(res,200,{notifications:store.notifications.filter(function(item){return item.user_id===user.id;}).slice(0,100).map(function(item){return {id:item.id,type:item.type,project_id:item.project_id,message:item.message,read:item.read,created_at:item.created_at};})});}
+  m=pathname.match(/^\/api\/me\/notifications\/([a-zA-Z0-9_-]+)$/);
+  if(m&&req.method==='PATCH'){const user=requireUser(req,res);if(!user)return;const notification=store.notifications.find(function(item){return item.id===m[1]&&item.user_id===user.id;});if(!notification)return fail(res,404,'Notification not found');notification.read=true;await persist();return json(res,200,{ok:true});}
   if(pathname==='/api/me/favorites'&&req.method==='GET'){const user=requireUser(req,res);if(!user)return;return json(res,200,{projects:store.projects.filter(function(p){return (p.favorites||[]).includes(user.id)&&approvedProject(p);}).map(publicProject)});}
   if(pathname==='/api/me/follows'&&req.method==='GET'){const user=requireUser(req,res);if(!user)return;return json(res,200,{projects:store.projects.filter(function(p){return (p.followers||[]).includes(user.id)&&approvedProject(p);}).map(publicProject)});}
   if(pathname==='/api/developer/projects'&&req.method==='GET'){const user=requireUser(req,res);if(!user)return;return json(res,200,{projects:store.projects.filter(function(p){return p.owner_id===user.id||(p.members||[]).some(function(member){return member.user_id===user.id;});}).map(developerProject)});}
