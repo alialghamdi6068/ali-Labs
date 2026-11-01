@@ -30,7 +30,7 @@ Keep all secrets on the host or in a secret manager. Never commit them to GitHub
 - `DISCORD_CLIENT_SECRET`
 - `SESSION_SECRET` — a long random secret used to hash session tokens.
 - `APP_ENCRYPTION_KEY` — a long random secret used by AES-256-GCM to encrypt stored account email and biography fields.
-- `PLATFORM_OWNER_EMAIL=alialghamdi6068@gmail.com` — the verified OAuth account matching this email receives the platform owner/admin role.
+- `PLATFORM_OWNER_EMAIL=alialghamdi6068@gmail.com` — the verified OAuth account matching this email receives the `owner` role with full platform permissions.
 - `PUBLIC_BASE_URL=https://YOUR_DOMAIN` — required in production for exact OAuth callback URLs.
 
 Register these exact callback URLs with the providers:
