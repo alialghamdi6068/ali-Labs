@@ -9,4 +9,4 @@ async function load(){if(!API){$("banner").textContent="The Ali Labs API is unav
 $("globalRoleForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await api("/api/admin/users/role",{method:"POST",body:JSON.stringify({email:f.get("email"),role:f.get("role")})});$("roleStatus").textContent="Role granted.";e.target.reset()}catch(err){$("roleStatus").textContent=err.message;$("roleStatus").className="status error"}};
  async function change(path,status){if(!confirm("Change status to "+status+"?"))return;try{await api(path,{method:"PATCH",body:JSON.stringify({status})});$("status").textContent="Updated.";await load()}catch(e){$("status").textContent=e.message;$("status").className="status error"}}
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));load()});$("refresh").onclick=load;load();
-</script></body></html>
+</script><script src="./i18n.js"></script></body></html>

@@ -198,5 +198,5 @@ document.addEventListener('click',e=>{if(e.target.id==='mobileSearchGo'){const q
   const initialParams=new URLSearchParams(location.search);query=initialParams.get('q')||'';activeFilter=initialParams.get('category')||'All';const initialSort=initialParams.get('sort');if(['name','downloads','popular','updated'].includes(initialSort))document.getElementById('sortSelect').value=initialSort;document.getElementById('gameVersionSelect').value=initialParams.get('gameVersion')||'';document.getElementById('loaderSelect').value=initialParams.get('loader')||'';document.getElementById('mainSearch').value=query;document.getElementById('topSearch').value=query;document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('selected',b.dataset.filter===activeFilter));document.getElementById('loadMore').addEventListener('click',()=>{cataloguePage+=1;loadGitHubCatalogue(true)});document.getElementById('year').textContent=new Date().getFullYear();render();
 </script>
 <script>loadGitHubCatalogue();</script>
-</body>
+<script src="./i18n.js"></script></body>
 </html>

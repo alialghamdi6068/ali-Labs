@@ -32,9 +32,6 @@ Keep all secrets on the host or in a secret manager. Never commit them to GitHub
 - `APP_ENCRYPTION_KEY` — a long random secret used by AES-256-GCM to encrypt stored account email and biography fields.
 - `PLATFORM_OWNER_EMAIL=alialghamdi6068@gmail.com` — the verified OAuth account matching this email receives the `owner` role with full platform permissions.
 - `PUBLIC_BASE_URL=https://YOUR_DOMAIN` — required in production for exact OAuth callback URLs.
-- `AI_UPLOAD_API_KEY` or `OPENAI_API_KEY` — server-only key for the upload triage scan.
-- `AI_UPLOAD_API_BASE` and `AI_UPLOAD_MODEL` — optional provider endpoint and model overrides.
-- `AI_UPLOAD_SCAN_REQUIRED=true` — reject uploads when the AI scan is unavailable; keep this enabled in production.
 
 Register these exact callback URLs with the providers:
 
@@ -68,7 +65,8 @@ Keep an off-host backup and test restoration before production launch. Back up t
 - OAuth state is checked with timing-safe comparison, sessions are opaque random tokens, and only session-token hashes are stored.
 - Approved release downloads require an authenticated session.
 - New uploads remain quarantined until the trusted review/scanning workflow approves them.
-- Every upload is checked before it is written to storage. The AI receives only a bounded text/indicator summary, never the full binary; high-risk results are rejected, and all other results remain quarantined for the trusted scanner and human moderation. AI alone is not treated as proof of safety.
+- Every upload is checked before it is written to storage by the local `Ali Labs Local Guard` engine. It uses local static rules, SHA-256 hashing, file signatures, bounded content indicators, archive policy checks, and the existing ClamAV/YARA scanner stack. High-risk signals are rejected, and all other files remain quarantined for trusted scanning and human moderation. No external AI API is required, and no uploaded binary is sent outside the server.
+- The language toggle is included on all current pages and stores the user's Arabic/English choice locally.
 - The JSON store is for a small single-instance deployment. Run exactly one server process per data directory; migrate to a transactional database for larger workloads.
 - Always use HTTPS in production so cookies are Secure.
 - A successful local test is not proof of production OAuth, scanner, backup, or host persistence.
