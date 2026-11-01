@@ -2,6 +2,7 @@ import { and, desc, eq, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertProject, InsertUser, InsertVersion, Project, User, Version, projects, users, versions } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { decryptSensitive, encryptSensitive } from './_core/crypto';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -26,7 +27,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   const textFields = ["name", "email", "loginMethod"] as const;
   textFields.forEach(field => {
     if (user[field] !== undefined) {
-      const value = user[field] ?? null;
+      const value = field === "email" ? encryptSensitive(user[field] ?? null) : (user[field] ?? null);
       values[field] = value;
       updateSet[field] = value;
     }
@@ -51,7 +52,9 @@ export async function getUserByOpenId(openId: string): Promise<User | undefined>
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result[0];
+  const user = result[0];
+  if (user?.email) user.email = decryptSensitive(user.email) as string | null;
+  return user;
 }
 
 export async function listPublicProjects(filters?: { search?: string; loader?: string; gameVersion?: string }) {

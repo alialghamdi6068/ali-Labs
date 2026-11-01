@@ -8,5 +8,7 @@ COPY . .
 RUN pnpm build
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV STORAGE_ROOT=/data/uploads
+RUN mkdir -p /data/uploads /data/backups
 EXPOSE 3000
 CMD ["node", "dist/index.js"]

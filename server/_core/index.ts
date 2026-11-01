@@ -6,7 +6,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { publicPlatformScript } from "./publicConfig";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { storagePut } from "../storage";
+import { storagePut, storageRead } from "../storage";
 import { serveStatic, setupVite } from "./vite";
 
 async function startServer() {
@@ -32,6 +32,16 @@ async function startServer() {
     } catch (error) {
       console.error("[Uploads] Failed:", error);
       return res.status(500).json({ error: "تعذر رفع الملف الآن" });
+    }
+  });
+  app.get("/api/files/*", async (req, res) => {
+    try {
+      const key = (req.params as { 0?: string })[0];
+      if (!key) return res.status(404).json({ error: "الملف غير موجود" });
+      const file = await storageRead(key);
+      res.type(file.contentType).send(file.data);
+    } catch {
+      res.status(404).json({ error: "الملف غير موجود" });
     }
   });
   app.get("/manus-routes.json", (_req, res) => res.json({
