@@ -1,25 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { ArrowLeft, ArrowUpLeft, CheckCircle2, Code2, Download, GitBranch, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { SiteChrome, ProjectIcon, Stat, Tag } from "@/components/SiteChrome";
+import { catalogProjects, formatNumber } from "@/lib/catalog";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+  const [, navigate] = useLocation();
+  const featured = catalogProjects.filter(project => project.featured);
+  return <SiteChrome><main>
+    <section className="hero-grid border-b border-white/[0.08]"><div className="shell py-20 md:py-28 grid lg:grid-cols-[1.1fr_.9fr] gap-14 items-center"><div><div className="eyebrow"><Sparkles size={14}/> مختبر مستقل للمبدعين</div><h1 className="mt-6 text-5xl md:text-7xl font-black leading-[1.02] tracking-[-0.05em] text-white">اكتشف ما<br/><span className="gradient-text">يبنيه المطورون.</span></h1><p className="mt-7 max-w-xl text-lg leading-8 text-slate-400">Ali Labs مساحة هادئة لاكتشاف المودات، الشيدرز، الحزم والأدوات التي تجعل عالم Minecraft أوسع — مع ملفات واضحة وإصدارات موثوقة.</p><div className="mt-9 flex flex-wrap items-center gap-3"><Link href="/discover" className="cta-primary">استكشف المشاريع <ArrowLeft size={17}/></Link><Link href="/dashboard" className="cta-secondary">أنا مطور <Code2 size={17}/></Link></div><div className="mt-11 flex items-center gap-8 border-t border-white/[0.08] pt-6"><Stat value="1.2K+" label="مشروعًا في المختبر"/><Stat value="86K" label="تنزيلات هذا الشهر"/><Stat value="99.9%" label="ملفات مفحوصة"/></div></div><div className="relative"><div className="orb orb-one"/><div className="orb orb-two"/><div className="terminal-card"><div className="flex items-center justify-between border-b border-white/10 pb-4"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-rose-400"/><span className="h-2 w-2 rounded-full bg-amber-400"/><span className="h-2 w-2 rounded-full bg-emerald-400"/></div><span className="font-mono text-[10px] text-slate-500">ali-labs / discover</span></div><div className="py-6 font-mono text-sm leading-8"><p className="text-slate-500">$ <span className="text-cyan-300">ali</span> discover --featured</p><p className="mt-3 text-slate-300">found <span className="text-violet-300">248</span> projects</p><p className="text-slate-300">verified <span className="text-emerald-300">all releases</span></p><div className="mt-5 rounded-2xl border border-violet-300/15 bg-violet-300/[0.06] p-4"><div className="flex items-center gap-3"><ProjectIcon letter="L" accent="#8b5cf6" size="sm"/><div><div className="font-sans font-bold text-white">Lumen Shaders</div><div className="font-sans text-xs text-slate-500">v2.4.0 · Iris · 1.21</div></div><CheckCircle2 className="mr-auto text-emerald-300" size={17}/></div><div className="mt-4 flex items-center justify-between font-sans text-xs text-slate-500"><span>آخر إصدار مستقر</span><span className="text-cyan-300">18.4 MB</span></div></div><p className="mt-5 text-slate-600">$ <span className="text-slate-400">ready when you are_</span></p></div></div></div></div></section>
+    <section className="shell py-20"><div className="flex items-end justify-between gap-4"><div><div className="eyebrow">مختارات المختبر</div><h2 className="section-title">مشاريع تستحق التجربة</h2></div><Link href="/discover" className="hidden sm:inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white">عرض الكل <ArrowLeft size={15}/></Link></div><div className="mt-8 grid md:grid-cols-2 gap-4">{featured.map(project => <ProjectCard key={project.slug} project={project}/>)}</div></section>
+    <section className="border-y border-white/[0.08] bg-white/[0.015]"><div className="shell py-20 grid md:grid-cols-3 gap-5"><Feature icon={<GitBranch/>} title="إصدارات مرتبة" text="كل مشروع له سجل إصدارات واضح وتوافق معروف مع Minecraft واللودر."/><Feature icon={<ShieldCheck/>} title="مسار ثقة" text="مراجعة واضحة للملفات قبل ظهورها في الدليل العام، مع حالات مفهومة."/><Feature icon={<Users/>} title="للمطورين أولًا" text="أنشئ مشروعك، شارك تحديثاتك، وابنِ جمهورًا حول ما تصنعه."/></div></section>
+    <section className="shell py-20"><div className="rounded-[2rem] border border-violet-300/15 bg-gradient-to-br from-violet-500/15 via-[#171126] to-cyan-400/10 p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8"><div><div className="eyebrow">جاهز للنشر؟</div><h2 className="mt-3 text-3xl font-black text-white">ضع مشروعك أمام المطورين.</h2><p className="mt-3 text-slate-400">ابدأ بصفحة مشروع نظيفة، ثم أضف أول إصدار عندما تكون جاهزًا.</p></div><button onClick={() => navigate("/dashboard")} className="cta-primary whitespace-nowrap">ابدأ مشروعًا <ArrowLeft size={17}/></button></div></section>
+  </main></SiteChrome>;
 }
+
+function Feature({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) { return <div className="feature-card"><div className="icon-box">{icon}</div><h3 className="mt-5 font-bold text-white">{title}</h3><p className="mt-2 text-sm leading-7 text-slate-500">{text}</p></div>; }
+function ProjectCard({ project }: { project: (typeof catalogProjects)[number] }) { return <Link href={`/projects/${project.slug}`} className="project-card"><div className="flex items-start gap-4"><ProjectIcon letter={project.icon} accent={project.accent}/><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="font-bold text-white truncate">{project.name}</h3><CheckCircle2 size={15} className="text-emerald-300 shrink-0"/></div><p className="mt-1 text-sm text-slate-500">{project.summary}</p></div><ArrowUpLeft size={17} className="text-slate-600 group-hover:text-white"/></div><div className="mt-6 flex flex-wrap gap-2"><Tag tone="violet">{project.type}</Tag>{project.loaders.slice(0, 2).map(loader => <Tag key={loader} tone="cyan">{loader}</Tag>)}</div><div className="mt-6 flex items-center gap-5 text-xs text-slate-500"><span className="inline-flex items-center gap-1"><Download size={13}/> {formatNumber(project.downloads)}</span><span>تحديث {project.updated}</span><span className="mr-auto">{project.author}</span></div></Link>; }

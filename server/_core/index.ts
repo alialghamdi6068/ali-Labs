@@ -15,6 +15,17 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  app.get("/manus-routes.json", (_req, res) => res.json({
+    routes: [
+      { path: "/", title: "Ali Labs" },
+      { path: "/discover", title: "Discover projects" },
+      { path: "/projects/:slug", title: "Project" },
+      { path: "/projects/:slug/versions/:version", title: "Project version" },
+      { path: "/dashboard", title: "Developer dashboard" },
+      { path: "/admin", title: "Admin review" },
+      { path: "/404", title: "Not found" },
+    ],
+  }));
   app.get("/api/platform/config.js", (_req, res) => {
     res.set("Cache-Control", "no-store").type("application/javascript").send(publicPlatformScript());
   });

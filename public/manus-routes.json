@@ -1,0 +1,1 @@
+{"routes":[{"path":"/","title":"Ali Labs"},{"path":"/discover","title":"Discover projects"},{"path":"/projects/:slug","title":"Project"},{"path":"/projects/:slug/versions/:version","title":"Project version"},{"path":"/dashboard","title":"Developer dashboard"},{"path":"/admin","title":"Admin review"},{"path":"/404","title":"Not found"}]}
