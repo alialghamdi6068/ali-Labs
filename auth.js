@@ -11,7 +11,7 @@
   function replaceClick(id, fn) { const old=$(id); if(!old)return; const next=old.cloneNode(true); old.replaceWith(next); next.addEventListener("click",fn); }
   function auth() {
     if(!db) return show("Connect Supabase",'<p class="modal-note">Backend is not configured. Run supabase/schema.sql in Supabase, copy config.example.js to config.js, and enter your project URL and public anon/publishable key.</p>');
-    show("Sign in to VoidFlame Labs",'<p class="modal-note">Sign in securely using a provider. This site never asks for your Google or GitHub password.</p><button class="btn" id="oauthGoogle" style="width:100%;margin-bottom:10px">Continue with Google</button><button class="btn" id="oauthGithub" style="width:100%">Continue with GitHub</button><p class="modal-note" style="margin-top:14px">Enable both providers in Supabase Authentication settings and configure the allowed redirect URL.</p>');
+    show("Sign in to Ali Labs",'<p class="modal-note">Sign in securely using a provider. This site never asks for your Google or GitHub password.</p><button class="btn" id="oauthGoogle" style="width:100%;margin-bottom:10px">Continue with Google</button><button class="btn" id="oauthGithub" style="width:100%">Continue with GitHub</button><p class="modal-note" style="margin-top:14px">Enable both providers in Supabase Authentication settings and configure the allowed redirect URL.</p>');
     [["oauthGoogle","google"],["oauthGithub","github"]].forEach(([id,provider])=>$(id).addEventListener("click",async()=>{const {error}=await db.auth.signInWithOAuth({provider,options:{redirectTo:location.origin+location.pathname}});if(error)toast(error.message);}));
   }
   async function refresh() {
