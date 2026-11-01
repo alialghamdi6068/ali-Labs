@@ -201,6 +201,10 @@ function signatureOK(buf,ext) {
   if(ext==='webm')return buf.subarray(0,4).equals(Buffer.from([0x1a,0x45,0xdf,0xa3]));
   return false;
 }
+function releaseExtensionsFor(category) {
+  const policies={Mods:['jar'],Plugins:['jar'],Modpacks:['mrpack','zip'],Shaders:['zip'],'Resource Packs':['zip'],Datapacks:['zip'],Tools:['jar','zip'],Other:['jar','zip','mrpack']};
+  return policies[category]||policies.Other;
+}
 async function upload(req,res,user,project,kind) {
   const type=req.headers['content-type']||'';
   if(!type.startsWith('multipart/form-data;'))return fail(res,400,'Expected multipart/form-data');
@@ -212,8 +216,9 @@ async function upload(req,res,user,project,kind) {
   if(!part||!part.filename)return fail(res,400,'Select a file');
   if(part.data.length>MAX_UPLOAD)return fail(res,413,'File exceeds 100 MB limit');
   const ext=path.extname(part.filename).slice(1).toLowerCase();
-  const allowed=kind==='release'?['jar','zip','mrpack']:['png','jpg','jpeg','webp','mp4','webm'];
-  if(!allowed.includes(ext)||!signatureOK(part.data.subarray(0,16),ext))return fail(res,400,'File type or file signature is not allowed');
+  const allowed=kind==='release'?releaseExtensionsFor(project.category):['png','jpg','jpeg','webp','mp4','webm'];
+  if(!allowed.includes(ext))return fail(res,400,'This project accepts '+allowed.map(function(item){return '.'+item;}).join(', ')+' files only');
+  if(!signatureOK(part.data.subarray(0,16),ext))return fail(res,400,'File type or file signature is not allowed');
   const key=id()+'-'+fileNameSafe(part.filename);
   if(kind==='media'){
     await fs.writeFile(path.join(UPLOAD_DIR,key),part.data,{flag:'wx',mode:0o600});
