@@ -174,7 +174,11 @@ function auditAllowed(u,res) { if(!u){fail(res,401,'Sign in required');return fa
 function approvedProject(p) { return p && p.status==='approved'; }
 function publicProject(p) {
   const owner=store.users.find(function(u){return u.id===p.owner_id;});
-  return {id:p.id,name:p.name,slug:p.slug,summary:p.summary||'',description:p.description||'',category:p.category||'Other',requirements:p.requirements||'',source_url:p.source_url||'',icon_url:p.icon_url||'',status:p.status,downloads:Number(p.downloads)||0,created_at:p.created_at,updated_at:p.updated_at,author:owner?owner.username:'unknown',favorites_count:Array.isArray(p.favorites)?p.favorites.length:0,followers_count:Array.isArray(p.followers)?p.followers.length:0};
+  const releases=store.versions.filter(function(v){return v.project_id===p.id&&v.status==='approved';});
+  const latest=releases.slice().sort(function(a,b){return (Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0);})[0];
+  const supportedVersions=[...new Set(releases.flatMap(function(v){return Array.isArray(v.game_versions)?v.game_versions:[];}))].slice(0,30);
+  const loaders=[...new Set(releases.flatMap(function(v){return Array.isArray(v.loaders)?v.loaders:[];}))].slice(0,20);
+  return {id:p.id,name:p.name,slug:p.slug,summary:p.summary||'',description:p.description||'',category:p.category||'Other',requirements:p.requirements||'',source_url:p.source_url||'',icon_url:p.icon_url||'',status:p.status,downloads:Number(p.downloads)||0,created_at:p.created_at,updated_at:p.updated_at,author:owner?owner.username:'unknown',favorites_count:Array.isArray(p.favorites)?p.favorites.length:0,followers_count:Array.isArray(p.followers)?p.followers.length:0,supported_versions:supportedVersions,loaders,version:latest?latest.version_number:null,release_url:latest?latest.release_url:null};
 }
 function publicVersion(v) {
   return {id:v.id,version_number:v.version_number,changelog:v.changelog||'',game_versions:Array.isArray(v.game_versions)?v.game_versions:[],loaders:Array.isArray(v.loaders)?v.loaders:[],dependencies:Array.isArray(v.dependencies)?v.dependencies:[],channel:v.channel||'release',file_name:v.file_name||null,file_size:Number(v.file_size)||0,release_url:v.release_url||null,downloads:Number(v.downloads)||0,created_at:v.created_at};
@@ -190,7 +194,6 @@ function developerProject(p) {
 function fileNameSafe(name) { return path.basename(String(name||'download.bin')).replace(/[^a-zA-Z0-9._ -]/g,'_').slice(0,120)||'download.bin'; }
 function signatureOK(buf,ext) {
   if(['jar','zip','mrpack'].includes(ext))return buf.length>=4 && buf[0]===0x50 && buf[1]===0x4b && [0x03,0x05,0x07].includes(buf[2]);
-  if(ext==='7z')return buf.subarray(0,6).equals(Buffer.from([0x37,0x7a,0xbc,0xaf,0x27,0x1c]));
   if(ext==='png')return buf.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
   if(ext==='jpg'||ext==='jpeg')return buf[0]===255&&buf[1]===216&&buf[2]===255;
   if(ext==='webp')return buf.toString('ascii',0,4)==='RIFF'&&buf.toString('ascii',8,12)==='WEBP';
@@ -209,7 +212,7 @@ async function upload(req,res,user,project,kind) {
   if(!part||!part.filename)return fail(res,400,'Select a file');
   if(part.data.length>MAX_UPLOAD)return fail(res,413,'File exceeds 100 MB limit');
   const ext=path.extname(part.filename).slice(1).toLowerCase();
-  const allowed=kind==='release'?['jar','zip','mrpack','7z']:['png','jpg','jpeg','webp','mp4','webm'];
+  const allowed=kind==='release'?['jar','zip','mrpack']:['png','jpg','jpeg','webp','mp4','webm'];
   if(!allowed.includes(ext)||!signatureOK(part.data.subarray(0,16),ext))return fail(res,400,'File type or file signature is not allowed');
   const key=id()+'-'+fileNameSafe(part.filename);
   if(kind==='media'){
